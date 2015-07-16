@@ -32,32 +32,38 @@ class Project {
   }
   initFiles () {
     let defaultPath = process.cwd() + "/" + this.name;
-    function readResource(filename) {
+    //Reads last file in array from bob_the/resources directory, returns Promise with array for copyResource
+    function readResource(filenameArray) {
+      let filename = filenameArray.pop();
       return new Promise((res, rej) => {
         fs.readFile(__dirname + "/resources/" + filename, (err, data) => {
-          return err ? rej(err) : res(filename, data);
+          let promisedArray = [filename, data, filenameArray];
+          return err ? rej(err) : res(promisedArray);
         });
       });
     }
-    function copyResource(filename, data, path=defaultPath) {
+    //Copies resource read by readResource, returns Promise with array of fileNames left to read / copy
+    function copyResource(promisedArray, path=defaultPath) {
+      let filename = promisedArray[0], data = promisedArray[1], filenameArray = promisedArray[2];
       return new Promise((res, rej) => {
         fs.writeFile(path + "/" + filename, data, (err) => {
-          return err ? rej(err) : res();
-        })
-      })
+          return err ? rej(err) : res(filenameArray);
+        });
+      });
     }
-    readResource("gulpfile.js")
-      .then(copyResource);
+    readResource(["gulpfile.js",".jscsrc",".jshintrc"])
+      .then(copyResource)
+      .then(readResource)
+      .then(copyResource)
+      .then(readResource)
+      .then(copyResource)
+      .then(ee.emit("baseFilesMade"));
   }
 }
 
 class ProjectWithPackages extends Project {
   constructor (name) {
     super(name);
-  }
-  initFiles () {
-    super.initFiles();
-    // ee.on("baseFilesMade")
   }
 }
 
@@ -108,7 +114,7 @@ var promptPackages = () => {
 }
 
 //Returns a new Project() or ProjectWithPackages() object, depending on user responses to promptName and promptPackages
-var initProject = () => {
+var makeProject = () => {
   var projectName;
   promptName();
   ee.on("nameApproved", (name) => {
@@ -124,7 +130,7 @@ var initProject = () => {
   })
 }
 
-initProject();
+makeProject();
 var project;
 ee.on("projectObject", (projectObject) => {
   project = projectObject;
@@ -132,4 +138,7 @@ ee.on("projectObject", (projectObject) => {
 });
 ee.on("madeDirects", () => {
   project.initFiles();
-})
+});
+ee.on("baseFilesCopied", () => {
+  console.log("success!");
+});
