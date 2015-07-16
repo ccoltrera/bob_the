@@ -1,0 +1,40 @@
+{
+  "name": "bob_the",
+  "version": "0.1.0",
+  "description": "",
+  "main": "server.js",
+  "directories": {
+    "test": "test"
+  },
+  "scripts": {
+    "test": "gulp test"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ccoltrera/bob_the.git"
+  },
+  "keywords": [
+    "server",
+    "http",
+    "persistent"
+  ],
+  "author": "Colin Coltrera",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/ccoltrera/bob_the/issues"
+  },
+  "homepage": "https://github.com/ccoltrera/bob_the#readme",
+  "devDependencies": {
+    "chai": "^3.0.0",
+    "gulp": "^3.9.0",
+    "gulp-babel": "^5.1.0",
+    "gulp-jscs": "^1.6.0",
+    "gulp-jshint": "^1.11.2",
+    "gulp-mocha": "^2.1.3",
+    "jscs": "^1.13.1",
+    "mocha": "^2.2.5"
+  },
+  "dependencies": {
+    "prompt": "^0.2.14"
+  }
+}
