@@ -1,5 +1,5 @@
 var fs = require("fs");
-var exec = require("child_process").exec;
+var spawn = require("child_process").exec;
 var prompt = require("prompt");
 var EventEmitter = require('events').EventEmitter;
 var ee = new EventEmitter();
@@ -57,13 +57,80 @@ class Project {
       .then(copyResource)
       .then(readResource)
       .then(copyResource)
-      .then(ee.emit("baseFilesMade"));
+      .then(() => ee.emit("baseFilesCopied"));
   }
 }
 
-class ProjectWithPackages extends Project {
+class ProjectWithPackageAndGit extends Project {
   constructor (name) {
     super(name);
+  }
+  specSetup () {
+    let path = process.cwd() + "/" + this.name;
+    let name = this.name;
+    //Reads .btrc file from bob_the/resources directory, Returns Promise with Object form of the data
+    function readBTRC () {
+      return new Promise((res, rej) => {
+        fs.readFile(__dirname + "/resources/.tbrc", (err, data) => {
+          let btrc = JSON.parse(data.toString());
+          //console.log(btrc);
+          return err ? rej(err) : res(btrc);
+        });
+      });
+    }
+    //Writes the package.json to the project root, filling in default name and version.
+    function writePackageJSON (btrc) {
+      let packageJSONObject = btrc;
+      packageJSONObject["name"] = name;
+      packageJSONObject["version"] = "0.1.0";
+      let packageJSONString = JSON.stringify(packageJSONObject);
+      return new Promise((res, rej) => {
+        fs.writeFile(path + "/package.json", packageJSONString, (err) => {
+          return err ? rej(err) : res();
+        });
+      });
+    }
+    //runs npm install command, to install all dependencies
+    function npmInstaller() {
+      let workingDirectory = process.cwd() + "/" + name;
+      return new Promise((res, rej) => {
+        let npmInstall = spawn("npm install", {cwd: workingDirectory});
+        npmInstall.stdout.on("data", (data) => {
+          console.log(data);
+        });
+        npmInstall.stderr.on("data", (data) => {
+          console.log(data);
+        });
+        npmInstall.on("close", (code) => {
+          return res();
+        });
+      });
+    }
+    //Inits a git repo in the root folder
+    function gitInitter() {
+      let workingDirectory = process.cwd() + "/" + name;
+      return new Promise((res, rej) => {
+        let initGit = spawn("git init", {cwd: workingDirectory});
+        initGit.stdout.on("data", (data) => {
+          console.log(data);
+        });
+        initGit.stderr.on("data", (data) => {
+          console.log(data);
+        });
+        initGit.on("close", (code) => {
+          return res();
+        });
+      });
+    }
+    //Creates a .gitignore file with node_modules
+    function writeGitIgnore() {
+      return new Promise((res, rej) => {
+        fs.writeFile(path + "/.gitignore", "node_modules", (err) => {
+          return err ? rej(err) : res("written");
+        });
+      });
+    }
+    readBTRC().then(writePackageJSON).then(npmInstaller).then(gitInitter).then(writeGitIgnore).then(console.log);
   }
 }
 
@@ -93,9 +160,9 @@ var promptName = () => {
 }
 
 //Prompts the user whether they want to init with packages or not, returns a Boolean
-var promptPackages = () => {
+var promptPackage = () => {
   var properties = [{
-    name: "withPackages",
+    name: "withPackageAndGit",
     validator:/^(y{1}|Y{1}|n{1}|N{1})$/,
     warning: "Must answer y/Y or n/N"
   }];
@@ -104,7 +171,7 @@ var promptPackages = () => {
     if (err) {
       console.log(err);
     } else {
-      if (result.withPackages.toLowerCase() === "y") {
+      if (result.withPackageAndGit.toLowerCase() === "y") {
         ee.emit("packageOption", true);
       } else {
         ee.emit("packageOption", false);
@@ -113,17 +180,17 @@ var promptPackages = () => {
   });
 }
 
-//Returns a new Project() or ProjectWithPackages() object, depending on user responses to promptName and promptPackages
+//Returns a new Project() or ProjectWithPackageAndGit() object, depending on user responses to promptName and promptPackage
 var makeProject = () => {
   var projectName;
   promptName();
   ee.on("nameApproved", (name) => {
     projectName = name;
-    promptPackages();
+    promptPackage();
   });
   ee.on("packageOption", (bool) => {
     if (bool) {
-      ee.emit("projectObject", new ProjectWithPackages(projectName));
+      ee.emit("projectObject", new ProjectWithPackageAndGit(projectName));
     } else {
       ee.emit("projectObject", new Project(projectName));
     }
@@ -140,5 +207,12 @@ ee.on("madeDirects", () => {
   project.initFiles();
 });
 ee.on("baseFilesCopied", () => {
-  console.log("success!");
+  if (ProjectWithPackageAndGit.prototype.isPrototypeOf(project)) {
+    project.specSetup();
+  } else {
+    ee.emit("SpecSetupComplete");
+  }
+});
+ee.on("SpecSetupComplete", () => {
+  console.log("SpecSetupComplete");
 });
