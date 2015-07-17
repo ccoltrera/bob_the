@@ -68,10 +68,10 @@ class ProjectWithPackageAndGit extends Project {
   specSetup () {
     let path = process.cwd() + "/" + this.name;
     let name = this.name;
-    //Reads .btrc file from bob_the/resources directory, Returns Promise with Object form of the data
+    //Reads .bob_therc file from bob_the/resources directory, Returns Promise with Object form of the data
     function readBTRC () {
       return new Promise((res, rej) => {
-        fs.readFile(__dirname + "/resources/.tbrc", (err, data) => {
+        fs.readFile(__dirname + "/resources/.bob_therc", (err, data) => {
           let btrc = JSON.parse(data.toString());
           //console.log(btrc);
           return err ? rej(err) : res(btrc);
@@ -130,7 +130,12 @@ class ProjectWithPackageAndGit extends Project {
         });
       });
     }
-    readBTRC().then(writePackageJSON).then(npmInstaller).then(gitInitter).then(writeGitIgnore).then(console.log);
+    readBTRC()
+      .then(writePackageJSON)
+      .then(npmInstaller)
+      .then(gitInitter)
+      .then(writeGitIgnore)
+      .then(() => ee.emit("SpecSetupComplete"));
   }
 }
 
@@ -214,5 +219,5 @@ ee.on("baseFilesCopied", () => {
   }
 });
 ee.on("SpecSetupComplete", () => {
-  console.log("SpecSetupComplete");
+  console.log(`Initialized new project [${project.name}]`);
 });
